@@ -1,0 +1,36 @@
+{
+  "name": "@local/dsh-oc-usage",
+  "version": "1.1.0",
+  "private": true,
+  "description": "OpenCode Go / Zen 额度徽标：挂在对话标题栏，常显 5 小时 / 每周 / 每月三档实时用量与重置倒计时；可另加自定义来源（余额/额度/任意只读接口）与 token 台账，外观与 Harness Web UI 主题一致",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test/host-load.mjs && node test/client-load.mjs"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "opencode",
+    "quota",
+    "usage"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-renderer"
+      ]
+    }
+  }
+}

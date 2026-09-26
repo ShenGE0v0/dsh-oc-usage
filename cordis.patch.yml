@@ -1,0 +1,59 @@
+# OpenCode 额度徽标：Host 半负责带上 Key 请求上游，Client 半把三档用量挂在
+# 对话标题栏右侧的工具位。Key 不进这里，只留凭据名；值来自
+# ~/.dsh/.credentials.yaml 的 refs 段（也可用同名环境变量覆盖）。
+#
+# 这里刻意不写 config：候选凭据名按顺序写在 index.js 的 DEFAULT_CREDENTIAL_REFS
+# 里，第一位留给"路由真正在用的那把"（profile 里 llm-pi-ai 各路由的 apiKeyEnv）。
+# 面板和推理认同一把 Key，显示的额度才和实际消耗对得上。
+#
+# 为什么不是一个写死的名字：这个面板被"引用名过期"坑过两次 ——
+#   * 最初写 OPENCODE_GO_API_KEY，被启动环境里那把同名的旧 Key 顶掉
+#     （credentials 的层叠顺序是"继承环境 > 托管存储"），一直 401；
+#   * 换成专用的 OPENCODE_USAGE_API_KEY 后，里面存的是 `sk-` 开头的旧版 Key，
+#     而上游只认 Console 新签发的 `oc_sk_` Key，于是还是 401 —— 同时刻对话却
+#     完全正常，因为对话走的是路由自己的 apiKeyEnv。
+# 现在 Host 半会把候选名挨个试一遍、记住成功的那把，并在全失败时把试过的名字
+# 和各自的失败原因一起端出来，不再只丢一句查不出所以然的 401。
+#
+# 要换名字（例如某个 profile 的路由用了别的引用）：在 config 里声明即可，
+# 声明的名字排在最前、默认候选仍在其后兜底 ——
+#   config:
+#     credentialRefs: [MY_OPENCODE_KEY]
+#
+# ── 面板能看哪几路（设置入口在 设置 → 额度面板）────────────────────────────
+# 面板不止能看 OpenCode Go：来源是一张开放的表，每一路都是同一件事 —— 拿一个凭据引用
+# 去问一个只读接口，再按 kind 决定怎么读那份响应：
+#   usage    三档滚动窗口  GET {base}{path}      —— 默认 /usage（opencode 用这个，默认开）
+#   balance  账户余额      GET {base}{path}      —— 默认 /user/balance（deepseek 用这个）
+#   credits  OpenRouter    GET {base}{path}      —— 默认 /credits（openrouter 用这个）
+#                          GET {base}{infoPath}  —— 默认 /key，补充信息，拿不到不影响额度
+#   generic  任意只读接口   GET {base}{path}      —— 自己去响应里按路径取值
+# 前三种解读器也能改 path：换个厂商、同样的响应形状挂在别的路径下时用得着。generic 是给
+# 没见过的厂商准备的，path 与 valuePath 必填，unit（money/percent/tokens/number/text）
+# 决定那个数怎么显示，currencyPath/detailPath 取币种与右侧那行灰字。
+# 取值路径的语法只有 a.b[0].c（对象属性 + 数组下标），是个封闭的解释器，不 eval。
+#
+# 自定义来源在设置页里增删，内置三路只能停用、不能删（删了主面板就没数据了）。除
+# opencode 之外一律作为「其它来源」的一行出现在额度卡片下面；只有 opencode 决定上面那
+# 三张卡片和 token 台账的窗口口径 —— 别的来源没有那份 resetsAt 可以反推窗口。凭据引用
+# 留空就是不带 Authorization 发请求，公开接口用得着。
+#
+# 路径只收相对路径：绝对地址和 //host 会被拒 —— 否则一个 path 就能把带着凭据的请求指
+# 到别的主机上去。baseURL 里也不许内嵌凭据（那是最常见的自伤，会写进明文配置）。
+# 设置在插件自己管的 ~/.dsh/dsh-oc-usage.config.json 里（只有引用名和地址，没有密钥），
+# 层级是：代码默认值 → 这里 → 那个 JSON。设置页只写最后一层，删掉它即回到上一层。
+#
+# ── token 台账（面板上每张卡片的第二行）────────────────────────────────────
+# Host 半另外会扫本地的 DSH 会话日志，把 provider 自报的 token 按 1 分钟粒度记成
+# 一份账，用来和额度百分比对照着看（"多少钱的额度换来了多少 token"）。
+#   rollingHours —— 上游 rolling 窗口按几小时折算（默认 5，Lite 计划的值）
+#   routes       —— 只把打到 opencode.ai 的路由算进额度对照。不写就自动判：
+#                   设置里 baseURL 含 opencode.ai 的路由算数；设置里已经没有的
+#                   历史路由，按名字（open / opencode*）兜底，其余一律排除。
+# 浮层底部会另列"各路由 token"（含不计入的那几条），排除掉哪些、各自多少都不闷着。
+#   config:
+#     rollingHours: 5
+#     routes: [open, opencode-extra]
+- insert:
+    - id: oc-usage
+      name: '@local/dsh-oc-usage'

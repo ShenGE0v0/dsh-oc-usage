@@ -1,0 +1,3 @@
+# 仓库里统一 LF：本插件的文件都是 LF 写的，别让 Windows 上的 git 在检出时改成 CRLF
+# —— 一改就是"整篇都变了"的 diff，review 会全是噪声。
+* text=auto eol=lf

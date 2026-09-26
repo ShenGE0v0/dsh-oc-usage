@@ -1,0 +1,13 @@
+# 依赖（这个插件靠 profile 里的 link: 引入，正常不装依赖）
+node_modules/
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# 日志与临时产物
+*.log
+npm-debug.log*
+test/tmp/
